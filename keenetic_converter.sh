@@ -5,19 +5,24 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
-NC='\033[0m' # Без цвета
+NC='\033[0m'
 
 # Включаем логирование
 exec > >(tee -a /root/Keenetic/conversion.log) 2>&1
 
 # Проверка зависимостей
 for cmd in wget sed grep cut tee sha256sum; do
-    command -v "$cmd" >/dev/null 2>&1 || { echo -e "${RED}$cmd не установлен. Установите его и повторите попытку.${NC}"; exit 1; }
+    command -v "$cmd" >/dev/null 2>&1 || { echo -e "${RED}[Ошибка] $cmd не установлен. Установите его и повторите попытку.${NC}"; exit 1; }
 done
 
-# Аргумент для автоматического подтверждения
 AUTO_CONFIRM=false
 [[ "$1" == "--yes" ]] && AUTO_CONFIRM=true
+
+STEP=1
+step_msg() {
+    echo -e "${CYAN}[Шаг $STEP] $1${NC}"
+    ((STEP++))
+}
 
 confirm_continue() {
     if $AUTO_CONFIRM; then
@@ -32,13 +37,13 @@ confirm_continue() {
 }
 
 choose_dns() {
+    step_msg "Выбор пары DNS-серверов"
     declare -A dns_pairs=(
         [1]="77.88.8.8 8.8.8.8"
         [2]="8.8.8.8 1.1.1.1"
         [3]="1.1.1.1 9.9.9.10"
         [4]="9.9.9.10 8.8.8.8"
     )
-    echo -e "${CYAN}Выберите пару DNS серверов:${NC}"
     for key in $(seq 1 ${#dns_pairs[@]}); do
         echo "$key. ${dns_pairs[$key]}"
     done
@@ -57,6 +62,7 @@ choose_dns() {
 }
 
 select_user() {
+    step_msg "Выбор пользователя из конфигурации WireGuard"
     local WG_CONFIG_FILE="/etc/wireguard/antizapret.conf"
     if [[ ! -f "$WG_CONFIG_FILE" ]]; then
         echo -e "${RED}Файл $WG_CONFIG_FILE не найден!${NC}"; exit 1
@@ -66,7 +72,6 @@ select_user() {
     if [[ ${#clients[@]} -eq 0 ]]; then
         echo -e "${RED}Клиенты не найдены!${NC}"; exit 1
     fi
-    echo -e "${CYAN}Список пользователей:${NC}"
     for i in "${!clients[@]}"; do
         echo "$((i+1)). ${clients[$i]}"
     done
@@ -84,6 +89,7 @@ select_user() {
 }
 
 copy_and_edit_config() {
+    step_msg "Создание и изменение конфигурации клиента"
     USER_DIR="/root/Keenetic/Client/$selected_user"
     mkdir -p "$USER_DIR" || { echo -e "${RED}Не удалось создать $USER_DIR${NC}"; exit 1; }
     SOURCE_DIR="/root/antizapret/client/amneziawg/antizapret"
@@ -100,6 +106,7 @@ copy_and_edit_config() {
 }
 
 create_routes_file() {
+    step_msg "Создание маршрутов"
     ROUTES_SOURCE="/root/antizapret/result/keenetic-wireguard-routes.txt"
     ROUTES_DEST="$USER_DIR/${selected_user}_routes.txt"
     [[ ! -f "$ROUTES_SOURCE" ]] && { echo -e "${RED}Файл маршрутов не найден!${NC}"; exit 1; }
@@ -109,6 +116,7 @@ create_routes_file() {
 }
 
 send_files() {
+    step_msg "Отправка файлов в Telegram"
     local TG_SCRIPT="/root/tgsender.sh"
     if [[ -f "$TG_SCRIPT" ]]; then
         "$TG_SCRIPT" "$NEW_CONFIG_FILE"
@@ -125,7 +133,6 @@ send_files() {
     fi
 }
 
-### Основной скрипт ###
 echo -e "${CYAN}Добро пожаловать! Этот скрипт создаёт конфигурации для Keenetic.${NC}"
 confirm_continue "Продолжить?"
 choose_dns
@@ -133,4 +140,4 @@ select_user
 copy_and_edit_config
 create_routes_file
 send_files
-echo -e "${GREEN}Работа завершена успешно!${NC}"
+echo -e "${GREEN}[Готово] Работа завершена успешно!${NC}"
