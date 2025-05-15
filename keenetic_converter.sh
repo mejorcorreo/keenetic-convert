@@ -145,4 +145,4 @@ select_user
 copy_and_edit_config
 create_routes_file
 send_files
-echo -e "${GREEN}[Готово] Работа завершена успешно!${NC}"
+echo -e "${GREEN}[Готово] Работа завершена успешно!${NC}" 
