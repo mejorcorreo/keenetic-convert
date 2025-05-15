@@ -119,8 +119,10 @@ send_files() {
     step_msg "Отправка файлов в Telegram"
     local TG_SCRIPT="/root/tgsender.sh"
     if [[ -f "$TG_SCRIPT" ]]; then
-        "$TG_SCRIPT" "$NEW_CONFIG_FILE"
-        "$TG_SCRIPT" "$ROUTES_DEST"
+        OUT1=$("$TG_SCRIPT" "$NEW_CONFIG_FILE" 2>&1)
+        [[ $? -ne 0 ]] && echo -e "${RED}Ошибка при отправке $NEW_CONFIG_FILE: $OUT1${NC}"
+        OUT2=$("$TG_SCRIPT" "$ROUTES_DEST" 2>&1)
+        [[ $? -ne 0 ]] && echo -e "${RED}Ошибка при отправке $ROUTES_DEST: $OUT2${NC}"
     else
         echo -e "${YELLOW}tgsender.sh не найден.${NC}"
         confirm_continue "Скачать и настроить автоматически?" || return
@@ -129,7 +131,10 @@ send_files() {
         read -p "YOUR_CHAT_ID: " chat_id
         read -p "YOUR_BOT_TOKEN: " bot_token
         sed -i "s/<YOUR_CHAT_ID>/$chat_id/g; s/<YOUR_BOT_TOKEN>/$bot_token/g" "$TG_SCRIPT"
-        "$TG_SCRIPT" "$NEW_CONFIG_FILE" && "$TG_SCRIPT" "$ROUTES_DEST"
+        OUT1=$("$TG_SCRIPT" "$NEW_CONFIG_FILE" 2>&1)
+        [[ $? -ne 0 ]] && echo -e "${RED}Ошибка при отправке $NEW_CONFIG_FILE: $OUT1${NC}"
+        OUT2=$("$TG_SCRIPT" "$ROUTES_DEST" 2>&1)
+        [[ $? -ne 0 ]] && echo -e "${RED}Ошибка при отправке $ROUTES_DEST: $OUT2${NC}"
     fi
 }
 
